@@ -209,16 +209,13 @@ class PrefixTrainer(TrainerBase):
     def step(self, batch):
         #####
         if hasattr(batch, 'to') and callable(getattr(batch, 'to')):
-            # BatchEncoding等对象有自己的to()方法
             batch = batch.to(self.args.device)
         elif isinstance(batch, dict):
-            # 普通字典：先获取所有键，再逐个移动
-            for key in list(batch.keys()):  # ⚠️ 用list()避免遍历中修改字典
+            for key in list(batch.keys()):
                 try:
                     if isinstance(batch[key], torch.Tensor):
                         batch[key] = batch[key].to(self.args.device)
                 except (TypeError, KeyError):
-                    # 如果某个key访问出错，跳过它
                     continue
         #####
         
