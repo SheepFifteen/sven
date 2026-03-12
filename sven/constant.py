@@ -76,4 +76,11 @@ MODEL_DIRS = {
     '6b': 'Salesforce/codegen-6B-multi',
     'incoder': 'facebook/incoder-6B',
     'santa': 'bigcode/santacoder',
+    ### new models
+    'qwen-test': 'Qwen/Qwen2.5-Coder-0.5B',
+    'codellama-test': 'TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+    'starcoder-test': 'bigcode/starcoder2-3b',
+    'qwen': 'Qwen/Qwen2.5-Coder-7B',
+    'codellama': 'codellama/CodeLlama-7b-hf',
+    'starcoder': 'bigcode/starcoder2-7b',
 }
