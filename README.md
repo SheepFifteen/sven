@@ -1,5 +1,9 @@
+The original work was not done by me, forked from eth-sri/sven
+
+support for Llama, Qwen2, and Starcoder2 models
+
 # SVEN: Security Hardening and Adversarial Testing for Code LLMs
-SVEN enables controlling LLMs to generate secure (for security hardening) or unsafe code (for adversarial testing), while maintaining functional correctness. It achieves this by learning continuous prompts (or prefixes) with specialized loss terms on our curated dataset. This repository contains SVEN's source code and trained prefixes, as well as training and evaluation data. For more technical details, check our [paper](https://arxiv.org/abs/2302.05319).
+SVEN enables controlling LLMs to generate secure (for security hardening) or unsafe code (for adversarial testing), while maintaining functional correctness. It achieves this by learning continuous prompts (or prefixes) with specialized loss terms on our curated dataset. This repository contains SVEN's source code and trained prefixes, as well as training and evaluation data. For more technical details, check the [paper](https://arxiv.org/abs/2302.05319).
 
 ## Directory Structure
 The directory structure of this repository is shown as below:
@@ -11,8 +15,6 @@ The directory structure of this repository is shown as below:
 |-- scripts            # scripts for training and evaluation
 |-- trained            # trained prefixes
 ```
-
-SVEN currently supports [CodeGen](https://arxiv.org/abs/2203.13474), [InCoder](https://arxiv.org/abs/2204.05999), and [SantaCoder](https://arxiv.org/abs/2301.03988). It should be straightforward to add support for other LLMs (PR welcomed).
 
 ## Setup
 Set up Python dependencies (a virtual environment is recommended) and [GitHub CodeQL](https://github.com/github/codeql):
@@ -42,7 +44,7 @@ $ python print_results.py --eval_dir ../experiments/sec_eval/sec-eval-350m-lm
 ```
 
 ### Evaluation on Functional Correctness
-We use [the HumanEval benchmark](https://github.com/openai/human-eval) from [the MultiPL-E framework](https://github.com/nuprl/MultiPL-E/tree/dbcfa139a66cf5e46de798fa5e0854a7f417a046) to evaluate functional correctness. To evaluate the original LLM, run the command below. Check `human_eval_gen.py` for other generation arguments.
+use [the HumanEval benchmark](https://github.com/openai/human-eval) from [the MultiPL-E framework](https://github.com/nuprl/MultiPL-E/tree/dbcfa139a66cf5e46de798fa5e0854a7f417a046) to evaluate functional correctness. To evaluate the original LLM, run the command below. Check `human_eval_gen.py` for other generation arguments.
 ```console
 $ python human_eval_gen.py --model_type lm --model_dir 350m --output_name human-eval-350m-lm
 $ python human_eval_exec.py --output_name human-eval-350m-lm
@@ -63,15 +65,4 @@ $ python print_results.py --eval_type human_eval --eval_dir ../experiments/human
 We have provided our trained prefixes in `./trained`. To train SVEN yourself, run:
 ```console
 $ python train.py --output_name 350m-prefix-new --pretrain_dir 350m
-```
-
-## Citation
-```
-@inproceedings{sven-llm,
-  author       = {Jingxuan He and Martin Vechev},
-  title        = {Large Language Models for Code: Security Hardening and Adversarial Testing},
-  booktitle    = {ACM CCS},
-  year         = {2023},
-  url          = {https://arxiv.org/abs/2302.05319},
-}
 ```
