@@ -60,9 +60,3 @@ To view the results (for the original LLM for example), run:
 ```console
 $ python print_results.py --eval_type human_eval --eval_dir ../experiments/human_eval/human-eval-350m-lm
 ```
-
-## Training
-We have provided our trained prefixes in `./trained`. To train SVEN yourself, run:
-```console
-$ python train.py --output_name 350m-prefix-new --pretrain_dir 350m
-```
