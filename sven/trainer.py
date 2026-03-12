@@ -203,7 +203,25 @@ class PrefixTrainer(TrainerBase):
         self.dataset = PrefixDataset(self.args, self.tokenizer, 'train')
         self.val_dataset = PrefixDataset(self.args, self.tokenizer, 'val')
 
+#####
+#####
+
     def step(self, batch):
+        #####
+        if hasattr(batch, 'to') and callable(getattr(batch, 'to')):
+            # BatchEncoding等对象有自己的to()方法
+            batch = batch.to(self.args.device)
+        elif isinstance(batch, dict):
+            # 普通字典：先获取所有键，再逐个移动
+            for key in list(batch.keys()):  # ⚠️ 用list()避免遍历中修改字典
+                try:
+                    if isinstance(batch[key], torch.Tensor):
+                        batch[key] = batch[key].to(self.args.device)
+                except (TypeError, KeyError):
+                    # 如果某个key访问出错，跳过它
+                    continue
+        #####
+        
         return_dict = OrderedDict()
         inputs, weights, control_ids, _ = batch
         inputs = inputs.to(self.input_device)
@@ -221,28 +239,31 @@ class PrefixTrainer(TrainerBase):
             incorrect_control_ids = -1 * (control_ids - 1)
             incorrect_logits, incorrect_label_probs = get_logits_from_lm(self.model, inputs, incorrect_control_ids)
 
-            contrastive_loss = 0
             if self.args.contrastive_loss_ratio != 0:
-                contrastive_probs = torch.stack((correct_label_probs, incorrect_label_probs), dim=1)
+                contrastive_probs = torch.stack((correct_label_probs + 1e-10, incorrect_label_probs + 1e-10), dim=1)
                 contrastive_probs = F.normalize(contrastive_probs, p=1, dim=-1)
+                contrastive_probs = torch.clamp(contrastive_probs, min=1e-10, max=1.0 - 1e-10)
                 contrastive_log_probs = torch.log(contrastive_probs)
+                
                 contrastive_labels = torch.zeros(shift_inputs.shape, dtype=torch.int64).to(self.input_device)
                 contrastive_loss = token_weighted_loss('nll', contrastive_log_probs, contrastive_labels, shift_weights)
                 contrastive_loss *= self.args.contrastive_loss_ratio / 100
                 return_dict['contrastive_loss'] = contrastive_loss.item()
 
-            kl_loss = 0
             if self.args.kl_loss_ratio != 0:
-                correct_log_probs = F.log_softmax(correct_logits, dim=-1)
+                correct_log_probs = F.log_softmax(correct_logits.float(), dim=-1)
                 self.model.eval()
                 with torch.no_grad():
                     ref_logits, _ = get_logits_from_lm(self.model, inputs, None)
                 self.model.train()
                 ref_log_probs = F.log_softmax(ref_logits, dim=-1)
-                kl_loss += token_weighted_loss('kl', correct_log_probs, ref_log_probs, 1-shift_weights)
-                incorrect_log_probs = F.log_softmax(incorrect_logits, dim=-1)
-                kl_loss += token_weighted_loss('kl', incorrect_log_probs, ref_log_probs, 1-shift_weights)
-                kl_loss = kl_loss * self.args.kl_loss_ratio / 1000
+                
+                kl_weights = torch.clamp(1 - shift_weights, min=0.0, max=1.0)
+                kl_weights = kl_weights / (kl_weights.sum() + 1e-8)
+                kl_loss_part1 = token_weighted_loss('kl', correct_log_probs, ref_log_probs, kl_weights)
+                incorrect_log_probs = F.log_softmax(incorrect_logits.float(), dim=-1)
+                kl_loss_part2 = token_weighted_loss('kl', incorrect_log_probs, ref_log_probs, kl_weights)
+                kl_loss = (kl_loss_part1 + kl_loss_part2) * self.args.kl_loss_ratio / 1000
                 return_dict['kl_loss'] = kl_loss.item()
 
         loss = lm_loss + contrastive_loss + kl_loss
